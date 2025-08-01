@@ -17,7 +17,12 @@ Un MMO (Massively Multiplayer Online) basé sur l'univers de One Piece, dévelop
 - **🆕 Système de leaderboard** (top joueurs/équipages)
 - **🆕 Statistiques détaillées** (batailles, trésors, îles visitées)
 - **🆕 API REST complète** pour toutes les données
-- **🆕 Système d'économie** avec berries, shop, inventaire et équipement
+- **🆕 Système d'économie complet** avec berries, shop, inventaire et équipement
+- **🆕 objets One Piece** (armes, armures, consommables, devil fruits, trésors)
+- **🆕 Système de rareté** (Common, Uncommon, Rare, Legendary, Mythical)
+- **🆕 Gestion des transactions** (achat, vente, transfert de berries)
+- **🆕 Équipement d'objets** avec bonus de statistiques
+- **🆕 Historique économique** complet pour chaque joueur
 
 ### 🔧 Architecture
 
@@ -40,9 +45,9 @@ Le système utilise PostgreSQL avec Ecto pour la persistance :
 #### Tables principales
 - **users** : Données des joueurs (stats, position, équipage, devil fruits, berries)
 - **crews** : Données des équipages (membres, bounty, territoire, batailles)
-- **items** : Objets du jeu (armes, armures, consommables, devil fruits, trésors)
+- **items** : Objets du jeu
 - **user_items** : Inventaire des joueurs (quantité, équipement, durabilité)
-- **transactions** : Historique économique (achats, ventes, transferts)
+- **transactions** : Historique économique complet (achats, ventes, transferts)
 
 #### Fonctionnalités de persistance
 - **Sauvegarde automatique** toutes les 30s (joueurs) / 60s (équipages)
@@ -106,10 +111,75 @@ curl http://localhost:4000/api/crew/straw_hat_pirates
 curl http://localhost:4000/api/crews
 ```
 
-#### 🆕 Classements
+#### 🆕 Leaderboards
 ```bash
 curl http://localhost:4000/api/leaderboard
 # Top 20 joueurs par bounty + Top 10 équipages par bounty total
+```
+
+#### 🆕 Économie - Berries et Transactions
+
+##### Consulter les berries d'un joueur
+```bash
+curl http://localhost:4000/api/player/luffy_001/berries
+# Retourne: {"player_id": "luffy_001", "berries": 1500}
+```
+
+##### Transférer des berries entre joueurs
+```bash
+curl -X POST http://localhost:4000/api/berries/transfer \
+     -H "Content-Type: application/json" \
+     -d '{"from_player": "luffy_001", "to_player": "zoro_002", "amount": 100}'
+# Transfert de 100 berries avec transaction sécurisée
+```
+
+##### Historique des transactions
+```bash
+curl http://localhost:4000/api/player/luffy_001/transactions
+# Retourne l'historique complet des achats, ventes et transferts
+```
+
+#### 🆕 Shop et Inventaire
+
+##### Consulter les objets du shop
+```bash
+curl http://localhost:4000/api/shop
+# Objets One Piece avec stats, rareté et prix
+```
+
+##### Acheter un objet
+```bash
+curl -X POST http://localhost:4000/api/shop/buy \
+     -H "Content-Type: application/json" \
+     -d '{"player_id": "luffy_001", "item_id": "rusty_sword", "quantity": 1}'
+# Achat avec vérification automatique des berries
+```
+
+##### Vendre un objet
+```bash
+curl -X POST http://localhost:4000/api/shop/sell \
+     -H "Content-Type: application/json" \
+     -d '{"player_id": "luffy_001", "item_id": "rusty_sword", "quantity": 1}'
+# Vente à 50% du prix d'achat
+```
+
+##### Consulter l'inventaire
+```bash
+curl http://localhost:4000/api/player/luffy_001/inventory
+# Objets possédés avec quantités et status d'équipement
+```
+
+##### Équiper/Déséquiper des objets
+```bash
+# Équiper
+curl -X POST http://localhost:4000/api/inventory/equip \
+     -H "Content-Type: application/json" \
+     -d '{"player_id": "luffy_001", "item_id": "rusty_sword"}'
+
+# Déséquiper  
+curl -X POST http://localhost:4000/api/inventory/unequip \
+     -H "Content-Type: application/json" \
+     -d '{"player_id": "luffy_001", "item_id": "rusty_sword"}'
 ```
 
 curl http://localhost:4000/api/world
@@ -119,7 +189,76 @@ curl http://localhost:4000/api/world
 
 Rendez-vous sur http://localhost:4000/test.html pour une interface de test complète.
 
-## 🌊 Channels WebSocket
+## 💰 Système d'économie One Piece
+
+### 🪙 Berries (Monnaie)
+La monnaie officielle du monde de One Piece. Chaque joueur possède un compte de berries qui lui permet d'acheter des objets, équipements et consommables.
+
+### 🏪 Shop - Objets One Piece Authentiques - EXEMPLE (11)
+
+#### ⚔️ Armes
+1. **Rusty Sword** (Common) - 100 berries
+   - *"Une vieille épée rouillée. Pas grand-chose à voir, mais ça fera l'affaire."*
+   - Stats: +2 Force
+
+2. **Steel Katana** (Uncommon) - 500 berries
+   - *"Un katana bien forgé en acier de haute qualité."*
+   - Stats: +2 Vitesse, +5 Force
+
+3. **Legendary Meito** (Legendary) - 10,000 berries
+   - *"Une des 21 épées de Grand Grade. Une lame d'une netteté incroyable."*
+   - Stats: +5 Vitesse, +15 Force
+
+#### 🛡️ Armures
+4. **Leather Vest** (Common) - 150 berries
+   - *"Protection en cuir simple pour les pirates."*
+   - Stats: +3 Endurance
+
+5. **Marine Justice Coat** (Rare) - 2,000 berries
+   - *"Un manteau porté par les officiers de la Marine. Offre une bonne protection."*
+   - Stats: +8 Endurance, +3 Intelligence
+
+#### 🍖 Consommables
+6. **Delicious Meat** (Common) - 50 berries
+   - *"Le favori de Luffy ! Restaure la santé et l'énergie."*
+
+7. **Premium Sake** (Uncommon) - 200 berries
+   - *"Saké de haute qualité qui booste temporairement la force."*
+
+#### �‍☠️ Trésors
+8. **Ancient Gold Coin** (Rare) - 1,000 berries
+   - *"Une pièce d'or rare d'une civilisation perdue."*
+
+9. **Poneglyph Fragment** (Legendary) - 50,000 berries
+   - *"Un petit morceau d'un ancien Poneglyph. Extrêmement précieux pour les historiens."*
+
+#### 🍎 Devil Fruits (Fruits du Démon)
+10. **Gomu Gomu no Mi** (Mythical) - 100,000 berries
+    - *"Un Fruit du Démon de type Paramecia qui donne des propriétés de caoutchouc."*
+    - Stats: +10 Endurance, +5 Vitesse
+
+11. **Mera Mera no Mi** (Mythical) - 150,000 berries
+    - *"Un Fruit du Démon de type Logia qui permet de contrôler le feu."*
+    - Stats: +8 Intelligence, +12 Force
+
+### 🎒 Système d'inventaire
+- **Stockage illimité** par joueur
+- **Gestion des quantités** pour chaque objet
+- **Équipement automatique** avec bonus de stats
+- **Un seul objet équipé par type** (arme, armure, etc.)
+
+### 📊 Système de rareté
+- **Common** (Commun) - Objets de base disponibles facilement
+- **Uncommon** (Peu commun) - Objets de qualité moyenne  
+- **Rare** (Rare) - Objets difficiles à obtenir
+- **Legendary** (Légendaire) - Objets exceptionnels très puissants
+- **Mythical** (Mythique) - Devil Fruits et objets légendaires d'One Piece
+
+### 💸 Système de transactions
+- **Achat** : Prix plein dans le shop
+- **Vente** : 50% du prix d'achat
+- **Transfert de berries** : Gratuit entre joueurs
+- **Historique complet** : Toutes les transactions sont enregistrées avec timestamp et ID unique
 
 ### WorldChannel (`world:grand_line`)
 - **Connexion** : Rejoint le monde principal
@@ -433,7 +572,231 @@ Créez un Widget Blueprint avec :
 - **ListBox** pour les joueurs en ligne
 - **TextBlock** pour les logs d'événements
 
-#### 7. Système de Chat en temps réel
+#### 7. Système économique UE5
+
+Intégrez le système d'économie One Piece dans votre client UE5 :
+
+```cpp
+// Ajouter à votre PlayerController
+UFUNCTION(BlueprintCallable, Category = "Economy")
+void GetPlayerBerries(const FString& PlayerId);
+
+UFUNCTION(BlueprintCallable, Category = "Economy")
+void TransferBerries(const FString& FromPlayer, const FString& ToPlayer, int32 Amount);
+
+UFUNCTION(BlueprintCallable, Category = "Economy")
+void BuyItem(const FString& PlayerId, const FString& ItemId, int32 Quantity = 1);
+
+UFUNCTION(BlueprintCallable, Category = "Economy")
+void SellItem(const FString& PlayerId, const FString& ItemId, int32 Quantity = 1);
+
+UFUNCTION(BlueprintCallable, Category = "Economy")
+void GetPlayerInventory(const FString& PlayerId);
+
+UFUNCTION(BlueprintCallable, Category = "Economy")
+void EquipItem(const FString& PlayerId, const FString& ItemId);
+
+UFUNCTION(BlueprintCallable, Category = "Economy")
+void GetShopItems();
+
+// HTTP Request pour l'économie (REST API)
+void AOnePiecePlayerController::GetPlayerBerries(const FString& PlayerId)
+{
+    FString URL = FString::Printf(TEXT("http://localhost:4000/api/player/%s/berries"), *PlayerId);
+    
+    FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+    Request->OnProcessRequestComplete().BindUObject(this, &AOnePiecePlayerController::OnBerriesResponse);
+    Request->SetURL(URL);
+    Request->SetVerb("GET");
+    Request->SetHeader("Content-Type", "application/json");
+    Request->ProcessRequest();
+}
+
+void AOnePiecePlayerController::BuyItem(const FString& PlayerId, const FString& ItemId, int32 Quantity)
+{
+    FString URL = TEXT("http://localhost:4000/api/shop/buy");
+    
+    TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+    JsonObject->SetStringField("player_id", PlayerId);
+    JsonObject->SetStringField("item_id", ItemId);
+    JsonObject->SetNumberField("quantity", Quantity);
+    
+    FString OutputString;
+    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+    FJsonSerializer::Serialize(JsonObject.ToSharedRef(), Writer);
+    
+    FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+    Request->OnProcessRequestComplete().BindUObject(this, &AOnePiecePlayerController::OnBuyItemResponse);
+    Request->SetURL(URL);
+    Request->SetVerb("POST");
+    Request->SetHeader("Content-Type", "application/json");
+    Request->SetContentAsString(OutputString);
+    Request->ProcessRequest();
+}
+
+// Event handlers pour les réponses économiques
+void AOnePiecePlayerController::OnBerriesResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+    if (bWasSuccessful && Response.IsValid())
+    {
+        FString ResponseContent = Response->GetContentAsString();
+        TSharedPtr<FJsonObject> JsonObject;
+        TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(ResponseContent);
+        
+        if (FJsonSerializer::Deserialize(Reader, JsonObject))
+        {
+            int32 Berries = JsonObject->GetIntegerField("berries");
+            OnBerriesUpdated(Berries); // Blueprint implementable event
+        }
+    }
+}
+
+// Blueprint events à implémenter
+UFUNCTION(BlueprintImplementableEvent, Category = "Economy")
+void OnBerriesUpdated(int32 NewAmount);
+
+UFUNCTION(BlueprintImplementableEvent, Category = "Economy")
+void OnItemPurchased(const FString& ItemName, int32 Quantity, int32 TotalCost);
+
+UFUNCTION(BlueprintImplementableEvent, Category = "Economy")
+void OnInventoryUpdated(const TArray<FInventoryItem>& Items);
+
+UFUNCTION(BlueprintImplementableEvent, Category = "Economy")
+void OnTransactionComplete(const FString& TransactionId, const FString& Type);
+```
+
+#### 8. Structure des données économiques UE5
+
+Créez des structures C++ pour les données économiques :
+
+```cpp
+// OnePieceEconomyTypes.h
+USTRUCT(BlueprintType)
+struct FInventoryItem
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite, Category = "Item")
+    FString ItemId;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Item")
+    FString Name;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Item")
+    FString Type; // weapon, armor, consumable, etc.
+
+    UPROPERTY(BlueprintReadWrite, Category = "Item")
+    FString Rarity; // common, uncommon, rare, legendary, mythical
+
+    UPROPERTY(BlueprintReadWrite, Category = "Item")
+    int32 Quantity;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Item")
+    bool bEquipped;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Item")
+    int32 Value; // Prix en berries
+
+    UPROPERTY(BlueprintReadWrite, Category = "Item")
+    FString Description;
+};
+
+USTRUCT(BlueprintType)
+struct FShopItem
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite, Category = "Shop")
+    FString ItemId;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Shop")
+    FString Name;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Shop")
+    FString Type;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Shop")
+    FString Rarity;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Shop")
+    int32 Price;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Shop")
+    FString Description;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Shop")
+    TMap<FString, int32> StatBonuses; // "strength": 5, "speed": 2, etc.
+};
+
+USTRUCT(BlueprintType)
+struct FTransaction
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite, Category = "Transaction")
+    FString TransactionId;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Transaction")
+    FString Type; // purchase, sale, transfer
+
+    UPROPERTY(BlueprintReadWrite, Category = "Transaction")
+    int32 Amount;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Transaction")
+    FString Description;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Transaction")
+    FString Timestamp;
+};
+```
+
+#### 9. Interface Shop UE5
+
+Créez un Widget Blueprint pour le shop One Piece :
+
+```cpp
+// Dans votre widget .h
+UCLASS()
+class ONEPIECEMMO_API UOnePieceShopWidget : public UUserWidget
+{
+    GENERATED_BODY()
+
+protected:
+    UPROPERTY(meta = (BindWidget))
+    class UScrollBox* ShopItemsList;
+
+    UPROPERTY(meta = (BindWidget))
+    class UTextBlock* BerriesDisplay;
+
+    UPROPERTY(meta = (BindWidget))
+    class UScrollBox* InventoryList;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Shop")
+    TArray<FShopItem> ShopItems;
+
+    UPROPERTY(BlueprintReadWrite, Category = "Inventory")
+    TArray<FInventoryItem> PlayerInventory;
+
+public:
+    UFUNCTION(BlueprintCallable, Category = "Shop")
+    void RefreshShop();
+
+    UFUNCTION(BlueprintCallable, Category = "Shop")
+    void RefreshInventory();
+
+    UFUNCTION(BlueprintCallable, Category = "Shop")
+    void BuyShopItem(const FString& ItemId, int32 Quantity);
+
+    UFUNCTION(BlueprintCallable, Category = "Shop")
+    void SellInventoryItem(const FString& ItemId, int32 Quantity);
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Shop")
+    void OnShopItemsLoaded(const TArray<FShopItem>& Items);
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Shop")
+    void OnInventoryLoaded(const TArray<FInventoryItem>& Items);
+};
+```
 
 ```cpp
 // Ajouter à votre PlayerController
@@ -480,16 +843,19 @@ Content/
 ### �🎯 Prochaines étapes
 
 ### À développer
-- [ ] **Système de combat** PvP et PvE
-- [ ] **Fruits du démon** avec capacités spéciales
-- [ ] **Îles multiples** avec téléportation
-- [ ] **Quêtes dynamiques**
-- [ ] **Économie** (berries, objets)
+- [ ] **Système de combat** PvP et PvE avec les armes équipées
+- [x] **Fruits du démon** comme objets équipables avec bonus uniques ✅
+- [ ] **Îles multiples** avec téléportation et shops spécialisés
+- [ ] **Quêtes dynamiques** avec récompenses en berries et objets
+- [x] **Économie complète** (berries, objets, transactions) ✅
 - [x] **Base de données** persistante ✅
-- [ ] **Système d'authentification**
-- [ ] **Chat global** et privé
-- [ ] **Events mondiaux**
-- [ ] **Classements** (bounties, équipages) ✅
+- [ ] **Système d'authentification** sécurisé
+- [ ] **Chat global** et privé intégré
+- [ ] **Events mondiaux** avec récompenses économiques
+- [x] **Classements** (bounties, équipages) ✅
+- [ ] **Crafting system** pour améliorer les objets
+- [ ] **Enchantements** pour les armes et armures
+- [ ] **Guildes de marchands** et économie de serveur
 
 ### 🎯 Nouvelles fonctionnalités avec la DB
 
@@ -516,6 +882,12 @@ Content/
 - [ ] **Culling spatial** pour optimiser les updates
 - [ ] **Animation networking** pour les actions des joueurs
 - [ ] **Audio spatial** pour les voix d'équipage
+- [x] **Système économique REST** pour shop et inventaire ✅
+- [ ] **Cache local UE5** pour réduire les appels API
+- [ ] **Notifications économiques** temps réel via WebSocket
+- [ ] **Interface shop 3D** avec preview des objets One Piece
+- [ ] **Système de preview équipement** sur le character
+- [ ] **Effets visuels** pour les devil fruits et objets rares
 
 ### 🧪 Test de connexion UE5
 
@@ -611,12 +983,13 @@ L'interface de test à http://localhost:4000/test.html permet de :
 - Se connecter avec différents joueurs
 - Tester les mouvements et équipages en temps réel
 - **🆕 Tester toutes les fonctionnalités économiques** :
-  - Voir ses berries et son inventaire
-  - Acheter/vendre des objets dans le shop
-  - Transférer des berries entre joueurs
-  - Équiper/déséquiper des armes et armures
-  - Consulter l'historique des transactions
+  - 💰 Voir ses berries et effectuer des transferts
+  - 🎒 Gérer son inventaire complet
+  - ⚔️ Équiper/déséquiper armes, armures et devil fruits
+  - 📊 Consulter l'historique détaillé des transactions
+  - 🏆 Voir les stats boosted par l'équipement
 - Voir les événements en temps réel
+- **🆕 Interface économique complète** avec feedback visuel et gestion d'erreurs
 
 ## 📡 Communication temps réel
 
