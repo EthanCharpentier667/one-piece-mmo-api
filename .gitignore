@@ -1,0 +1,68 @@
+# The directory Mix will write compiled artifacts to.
+/_build/
+
+# If you run "mix test --cover", coverage assets end up here.
+/cover/
+
+# The directory Mix downloads your dependencies sources to.
+/deps/
+
+# Where 3rd-party dependencies like ExDoc output generated docs.
+/doc/
+
+# Ignore .fetch files in case you like to edit your project deps locally.
+/.fetch
+
+# If the VM crashes, it generates a dump, let's ignore it too.
+erl_crash.dump
+
+# Also ignore archive artifacts (built via "mix archive.build").
+*.ez
+
+# Temporary files, for example, from tests.
+/tmp/
+
+# Ignore package tarball (built via "mix hex.build").
+one_piece_mmo-*.tar
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.test
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Phoenix specific
+priv/static/assets/
+
+# LiveView uploads
+priv/static/uploads/
+
+# Node.js (si vous utilisez des assets)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Elixir Language Server
+.elixir_ls/
+
+# Configuration sensible (décommentez si nécessaire)
+# config/prod.secret.exs
+# config/dev.secret.exs
+

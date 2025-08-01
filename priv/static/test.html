@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>One Piece MMO - Test Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f8ff;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        
+        #log {
+            border: 1px solid #ddd;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏴‍☠️ One Piece MMO - Test Client</h1>
+        
+        <div id="status" class="status disconnected">
+            Status: Disconnected
+        </div>
+        
+        <div>
+            <input type="text" id="playerId" placeholder="Player ID" value="luffy_001">
+            <input type="text" id="playerName" placeholder="Player Name" value="Monkey D. Luffy">
+            <button onclick="connect()">Connect to Grand Line</button>
+            <button onclick="disconnect()" disabled id="disconnectBtn">Disconnect</button>
+        </div>
+        
+        <div>
+            <h3>🎮 Real-time Actions:</h3>
+            <button onclick="movePlayer()" disabled class="actionBtn">🏃 Move Player</button>
+            <button onclick="getOnlinePlayers()" disabled class="actionBtn">👥 Get Online Players</button>
+        </div>
+
+        <div>
+            <h3>📊 Database API Tests:</h3>
+            <button onclick="getPlayerStats()" class="actionBtn">📈 Get Player Stats</button>
+            <button onclick="getLeaderboard()" class="actionBtn">🏆 Get Leaderboard</button>
+            <button onclick="getAllCrews()" class="actionBtn">🏴‍☠️ Get All Crews</button>
+            <button onclick="getCrewInfo()" class="actionBtn">⚓ Get Crew Info</button>
+            <button onclick="getServerStatus()" class="actionBtn">🌐 Server Status</button>
+        </div>
+        
+        <div>
+            <h3>🏴‍☠️ Crew Management:</h3>
+            <div style="margin-bottom: 10px;">
+                <label for="crewName">🚢 Create Your Crew:</label><br>
+                <input type="text" id="crewName" placeholder="Enter crew name..." value="Straw Hat Pirates" style="width: 250px;">
+                <button onclick="createCrew()" disabled class="actionBtn">Create Crew</button>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label for="crewId">⚓ Join Existing Crew:</label><br>
+                <input type="text" id="crewId" placeholder="Enter crew ID..." value="straw_hat_pirates" style="width: 250px;">
+                <button onclick="joinCrew()" disabled class="actionBtn">Join Crew</button>
+            </div>
+            <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                💡 Test crews: "straw_hat_pirates", "heart_pirates", "kid_pirates"
+            </div>
+        </div>
+
+        <div>
+            <h3>🔍 Quick Tests:</h3>
+            <div style="margin-bottom: 10px;">
+                <label for="testPlayerId">Player ID to lookup:</label><br>
+                <input type="text" id="testPlayerId" placeholder="Enter player ID..." value="luffy_001" style="width: 250px;">
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label for="testCrewId">Crew ID to lookup:</label><br>
+                <input type="text" id="testCrewId" placeholder="Enter crew ID..." value="straw_hat_pirates" style="width: 250px;">
+            </div>
+            <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                🎮 Test players: "luffy_001", "zoro_002", "nami_003", "law_004", "kidd_005"
+            </div>
+        </div>
+        
+        <h3>Event Log:</h3>
+        <div id="log"></div>
+    </div>
+
+    <script src="/phoenix.js"></script>
+    <script>
+        let socket = null;
+        let worldChannel = null;
+        let playerChannel = null;
+        let crewChannel = null;
+        
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const actionBtns = document.querySelectorAll('.actionBtn');
+            
+            if (connected) {
+                statusDiv.textContent = 'Status: Connected to Grand Line';
+                statusDiv.className = 'status connected';
+                disconnectBtn.disabled = false;
+                actionBtns.forEach(btn => btn.disabled = false);
+            } else {
+                statusDiv.textContent = 'Status: Disconnected';
+                statusDiv.className = 'status disconnected';
+                disconnectBtn.disabled = true;
+                actionBtns.forEach(btn => btn.disabled = true);
+            }
+        }
+        
+        function connect() {
+            const playerId = document.getElementById('playerId').value;
+            const playerName = document.getElementById('playerName').value;
+            
+            if (!playerId || !playerName) {
+                alert('Please enter both Player ID and Player Name');
+                return;
+            }
+            
+            log('Attempting to connect...');
+            
+            socket = new Phoenix.Socket('/socket', {
+                params: { player_id: playerId, player_name: playerName }
+            });
+            
+            socket.onOpen(() => {
+                log('Socket connected!');
+                joinWorldChannel();
+            });
+            
+            socket.onError((error) => {
+                log(`Socket error: ${JSON.stringify(error)}`);
+                updateStatus(false);
+            });
+            
+            socket.onClose(() => {
+                log('Socket disconnected');
+                updateStatus(false);
+            });
+            
+            socket.connect();
+        }
+        
+        function joinWorldChannel() {
+            worldChannel = socket.channel('world:grand_line', {});
+            
+            worldChannel.join()
+                .receive('ok', (resp) => {
+                    log('Successfully joined Grand Line!');
+                    updateStatus(true);
+                })
+                .receive('error', (resp) => {
+                    log(`Failed to join Grand Line: ${JSON.stringify(resp)}`);
+                });
+            
+            // Event listeners
+            worldChannel.on('presence_state', (state) => {
+                log(`Presence state: ${JSON.stringify(state, null, 2)}`);
+            });
+            
+            worldChannel.on('presence_diff', (diff) => {
+                log(`Presence diff: ${JSON.stringify(diff, null, 2)}`);
+            });
+            
+            worldChannel.on('player_state', (state) => {
+                log(`Player state: ${JSON.stringify(state, null, 2)}`);
+            });
+            
+            worldChannel.on('player_moved', (data) => {
+                log(`Player moved: ${data.player_id} to ${JSON.stringify(data.position)}`);
+            });
+            
+            worldChannel.on('crew_created', (data) => {
+                log(`Crew created: ${data.crew_name} (ID: ${data.crew_id})`);
+            });
+            
+            worldChannel.on('player_disconnected', (data) => {
+                log(`Player disconnected: ${data.player_id}`);
+            });
+        }
+        
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                worldChannel = null;
+                updateStatus(false);
+                log('Disconnected from server');
+            }
+        }
+        
+        function movePlayer() {
+            if (!worldChannel) return;
+            
+            const newPosition = {
+                x: Math.random() * 1000,
+                y: Math.random() * 1000,
+                z: 0,
+                island: 'starter_island'
+            };
+            
+            worldChannel.push('player_move', { position: newPosition })
+                .receive('ok', () => {
+                    log(`Moved to position: ${JSON.stringify(newPosition)}`);
+                })
+                .receive('error', (resp) => {
+                    log(`Move failed: ${JSON.stringify(resp)}`);
+                });
+        }
+        
+        function createCrew() {
+            if (!worldChannel) return;
+            
+            const crewName = document.getElementById('crewName').value.trim();
+            if (!crewName) {
+                alert('🏴‍☠️ Please enter a crew name to sail the Grand Line!');
+                return;
+            }
+
+            if (crewName.length < 3) {
+                alert('⚠️ Crew name must be at least 3 characters long');
+                return;
+            }
+
+            log(`🏴‍☠️ Creating crew "${crewName}"...`);
+            
+            worldChannel.push('create_crew', { crew_name: crewName })
+                .receive('ok', (resp) => {
+                    log(`✅ Crew "${crewName}" created successfully! ID: ${resp.crew_id}`);
+                    log(`👑 You are now the captain of ${crewName}!`);
+                    document.getElementById('crewId').value = resp.crew_id;
+                    // Vider le champ de création pour éviter la duplication
+                    document.getElementById('crewName').value = '';
+                })
+                .receive('error', (resp) => {
+                    log(`❌ Failed to create crew "${crewName}": ${JSON.stringify(resp)}`);
+                });
+        }
+        
+        function joinCrew() {
+            if (!worldChannel) return;
+            
+            const crewId = document.getElementById('crewId').value.trim();
+            if (!crewId) {
+                alert('⚓ Please enter a crew ID to join an existing crew!');
+                return;
+            }
+
+            log(`⚓ Attempting to join crew: ${crewId}...`);
+            
+            worldChannel.push('join_crew', { crew_id: crewId })
+                .receive('ok', () => {
+                    log(`🎉 Successfully joined crew: ${crewId}!`);
+                    log(`🏴‍☠️ Welcome aboard, nakama!`);
+                })
+                .receive('error', (resp) => {
+                    log(`❌ Failed to join crew ${crewId}: ${JSON.stringify(resp)}`);
+                });
+        }
+        
+        function getOnlinePlayers() {
+            if (!worldChannel) return;
+            
+            worldChannel.push('get_online_players', {})
+                .receive('ok', (resp) => {
+                    log(`👥 Online players: ${JSON.stringify(resp, null, 2)}`);
+                })
+                .receive('error', (resp) => {
+                    log(`❌ Failed to get online players: ${JSON.stringify(resp)}`);
+                });
+        }
+
+        // 🆕 Database API Functions
+        async function getServerStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                log(`🌐 Server Status: ${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                log(`❌ Failed to get server status: ${error.message}`);
+            }
+        }
+
+        async function getPlayerStats() {
+            const playerId = document.getElementById('testPlayerId').value.trim();
+            if (!playerId) {
+                alert('Please enter a player ID to lookup');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/player/${playerId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`📈 Player Stats for ${playerId}:`);
+                    log(`   👤 Name: ${data.player.name}`);
+                    log(`   🏆 Level: ${data.player.level} (${data.player.experience} XP)`);
+                    log(`   💰 Bounty: ${data.player.bounty.toLocaleString()} berries`);
+                    log(`   📍 Position: ${data.player.position.island} (${data.player.position.x}, ${data.player.position.y})`);
+                    log(`   💪 Stats: STR:${data.player.stats.strength} SPD:${data.player.stats.speed} END:${data.player.stats.endurance} INT:${data.player.stats.intelligence}`);
+                    if (data.player.devil_fruit) {
+                        log(`   🍎 Devil Fruit: ${data.player.devil_fruit.name} (${data.player.devil_fruit.type})`);
+                    }
+                    if (data.player.crew_id) {
+                        log(`   🏴‍☠️ Crew: ${data.player.crew_id} ${data.player.is_crew_captain ? '(Captain)' : '(Member)'}`);
+                    }
+                    log(`   🕐 Last Login: ${new Date(data.player.last_login).toLocaleString()}`);
+                } else {
+                    log(`❌ Player ${playerId} not found`);
+                }
+            } catch (error) {
+                log(`❌ Failed to get player stats: ${error.message}`);
+            }
+        }
+
+        async function getCrewInfo() {
+            const crewId = document.getElementById('testCrewId').value.trim();
+            if (!crewId) {
+                alert('Please enter a crew ID to lookup');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/crew/${crewId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`⚓ Crew Info for ${crewId}:`);
+                    log(`   🏴‍☠️ Name: ${data.crew.name}`);
+                    log(`   👑 Captain: ${data.crew.captain_id}`);
+                    log(`   👥 Members: ${data.crew.member_count}/${data.crew.max_members}`);
+                    log(`   💰 Total Bounty: ${data.crew.total_bounty.toLocaleString()} berries`);
+                    log(`   ⭐ Reputation: ${data.crew.reputation}`);
+                    log(`   🗺️ Territory: ${data.crew.territory}`);
+                    log(`   ⚔️ Battles: ${data.crew.battles_won}W / ${data.crew.battles_lost}L`);
+                    log(`   🏝️ Islands Visited: ${data.crew.islands_visited.join(', ')}`);
+                    log(`   💎 Treasures Found: ${data.crew.treasures_found}`);
+                    log(`   📝 Description: ${data.crew.description}`);
+                    log(`   👥 Members Details:`);
+                    data.crew.members.forEach(member => {
+                        log(`      ${member.is_captain ? '👑' : '⚓'} ${member.name} (Lv.${member.level}, ${member.bounty.toLocaleString()} berries)`);
+                    });
+                } else {
+                    log(`❌ Crew ${crewId} not found`);
+                }
+            } catch (error) {
+                log(`❌ Failed to get crew info: ${error.message}`);
+            }
+        }
+
+        async function getAllCrews() {
+            try {
+                const response = await fetch('/api/crews');
+                const data = await response.json();
+                log(`🏴‍☠️ All Crews (${data.count} total):`);
+                data.crews.forEach((crew, index) => {
+                    log(`   ${index + 1}. ${crew.name} (${crew.id})`);
+                    log(`      👑 Captain: ${crew.captain_id}`);
+                    log(`      👥 Members: ${crew.member_count}, 💰 Bounty: ${crew.total_bounty.toLocaleString()}`);
+                    log(`      📅 Created: ${new Date(crew.created_at).toLocaleDateString()}`);
+                });
+            } catch (error) {
+                log(`❌ Failed to get crews: ${error.message}`);
+            }
+        }
+
+        async function getLeaderboard() {
+            try {
+                const response = await fetch('/api/leaderboard');
+                const data = await response.json();
+                
+                log(`🏆 ONE PIECE LEADERBOARD:`);
+                log(`\n   🥇 TOP PIRATES BY BOUNTY:`);
+                data.top_players.forEach(player => {
+                    const crewText = player.crew_id ? ` (${player.crew_id})` : ' (No Crew)';
+                    log(`      ${player.rank}. ${player.name} - ${player.bounty.toLocaleString()} berries${crewText}`);
+                });
+                
+                log(`\n   🏴‍☠️ TOP PIRATE CREWS:`);
+                data.top_crews.forEach(crew => {
+                    log(`      ${crew.rank}. ${crew.name} - ${crew.total_bounty.toLocaleString()} berries (${crew.member_count} members)`);
+                    log(`         👑 Captain: ${crew.captain_id}`);
+                });
+                
+            } catch (error) {
+                log(`❌ Failed to get leaderboard: ${error.message}`);
+            }
+        }
+        
+        // Initialize
+        updateStatus(false);
+        log('🏴‍☠️ One Piece MMO Test Client loaded!');
+        log('📋 INSTRUCTIONS:');
+        log('   1. 🎮 Real-time: Connect first, then use Move/Crew actions');
+        log('   2. 📊 Database API: Test without connecting (direct HTTP calls)');
+        log('   3. 🔍 Quick Tests: Use pre-filled test data or enter your own');
+        log('   4. 🏆 Try "Get Leaderboard" to see all pirates and crews!');
+        log('🚀 Ready to sail the Grand Line!');
+    </script>
+</body>
+</html>
