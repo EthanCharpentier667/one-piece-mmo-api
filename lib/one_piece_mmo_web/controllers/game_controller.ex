@@ -3,6 +3,7 @@ defmodule OnePieceMmoWeb.GameController do
   alias OnePieceMmoWeb.Presence
   alias OnePieceMmo.Accounts
   alias OnePieceMmo.World
+  alias OnePieceMmo.Economy
 
   def status(conn, _params) do
     json(conn, %{
@@ -201,5 +202,134 @@ defmodule OnePieceMmoWeb.GameController do
     "world:grand_line"
     |> Presence.list()
     |> map_size()
+  end
+
+  # Economy endpoints
+
+  def player_berries(conn, %{"player_id" => player_id}) do
+    case Accounts.get_user_by_player_id(player_id) do
+      nil ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Player not found"})
+
+      user ->
+        json(conn, %{
+          player_id: player_id,
+          berries: user.berries
+        })
+    end
+  end
+
+  def transfer_berries(conn, %{"from_player_id" => from_player_id, "to_player_id" => to_player_id, "amount" => amount}) do
+    case Economy.transfer_berries(from_player_id, to_player_id, amount) do
+      {:ok, transaction} ->
+        json(conn, %{
+          success: true,
+          transaction: %{
+            id: transaction.transaction_id,
+            from: from_player_id,
+            to: to_player_id,
+            amount: amount,
+            timestamp: transaction.inserted_at
+          }
+        })
+
+      {:error, reason} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: reason})
+    end
+  end
+
+  def shop_items(conn, _params) do
+    items = Economy.list_items()
+    json(conn, %{items: items})
+  end
+
+  def buy_item(conn, %{"player_id" => player_id, "item_id" => item_id, "quantity" => quantity}) do
+    case Economy.buy_item(player_id, item_id, quantity) do
+      {:ok, transaction} ->
+        json(conn, %{
+          success: true,
+          transaction: %{
+            id: transaction.transaction_id,
+            amount: transaction.amount,
+            timestamp: transaction.inserted_at
+          }
+        })
+
+      {:error, reason} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: reason})
+    end
+  end
+
+  def sell_item(conn, %{"player_id" => player_id, "item_id" => item_id, "quantity" => quantity}) do
+    case Economy.sell_item(player_id, item_id, quantity) do
+      {:ok, transaction} ->
+        json(conn, %{
+          success: true,
+          transaction: %{
+            id: transaction.transaction_id,
+            amount: transaction.amount,
+            timestamp: transaction.inserted_at
+          }
+        })
+
+      {:error, reason} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: reason})
+    end
+  end
+
+  def player_inventory(conn, %{"player_id" => player_id}) do
+    inventory = Economy.get_user_inventory(player_id)
+    json(conn, %{inventory: inventory})
+  end
+
+  def equip_item(conn, %{"player_id" => player_id, "item_id" => item_id}) do
+    case Economy.equip_user_item(player_id, item_id) do
+      {:ok, user_item} ->
+        json(conn, %{
+          success: true,
+          user_item: %{
+            id: user_item.id,
+            item_id: user_item.item_id,
+            equipped: user_item.equipped
+          }
+        })
+
+      {:error, reason} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: reason})
+    end
+  end
+
+  def unequip_item(conn, %{"player_id" => player_id, "item_id" => item_id}) do
+    case Economy.unequip_user_item(player_id, item_id) do
+      {:ok, user_item} ->
+        json(conn, %{
+          success: true,
+          user_item: %{
+            id: user_item.id,
+            item_id: user_item.item_id,
+            equipped: user_item.equipped
+          }
+        })
+
+      {:error, reason} ->
+        conn
+        |> put_status(:bad_request)
+        |> json(%{error: reason})
+    end
+  end
+
+  def player_transactions(conn, %{"player_id" => player_id}) do
+    transactions = Economy.get_user_transactions(player_id)
+    json(conn, %{transactions: transactions})
   end
 end

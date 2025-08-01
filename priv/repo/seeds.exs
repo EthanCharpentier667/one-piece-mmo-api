@@ -4,6 +4,8 @@
 
 alias OnePieceMmo.Accounts
 alias OnePieceMmo.World
+alias OnePieceMmo.Repo
+alias OnePieceMmo.Economy.Item
 
 # Créer des utilisateurs de test
 users = [
@@ -163,5 +165,141 @@ Enum.each(crews, fn crew_attrs ->
     {:error, changeset} -> IO.puts("❌ Failed to create crew #{crew_attrs.name}: #{inspect(changeset.errors)}")
   end
 end)
+
+# Clear existing items
+Repo.delete_all(Item)
+
+# Basic weapons and items
+items = [
+  # Swords
+  %{
+    item_id: "rusty_sword",
+    name: "Rusty Sword",
+    description: "An old, rusty sword. Not much to look at, but it'll do the job.",
+    type: "weapon",
+    rarity: "common",
+    value: 100,
+    stats_bonus: %{strength: 2},
+    requirements: %{level: 1}
+  },
+  %{
+    item_id: "steel_katana",
+    name: "Steel Katana",
+    description: "A well-crafted katana made of high-quality steel.",
+    type: "weapon",
+    rarity: "uncommon",
+    value: 500,
+    stats_bonus: %{strength: 5, speed: 2},
+    requirements: %{level: 5}
+  },
+  %{
+    item_id: "legendary_sword",
+    name: "Legendary Meito",
+    description: "One of the 21 Great Grade swords. A blade of incredible sharpness.",
+    type: "weapon",
+    rarity: "legendary",
+    value: 10000,
+    stats_bonus: %{strength: 15, speed: 5},
+    requirements: %{level: 20}
+  },
+
+  # Armor
+  %{
+    item_id: "leather_vest",
+    name: "Leather Vest",
+    description: "Simple leather protection for pirates.",
+    type: "armor",
+    rarity: "common",
+    value: 150,
+    stats_bonus: %{endurance: 3},
+    requirements: %{level: 1}
+  },
+  %{
+    item_id: "marine_coat",
+    name: "Marine Justice Coat",
+    description: "A coat worn by Marine officers. Provides good protection.",
+    type: "armor",
+    rarity: "rare",
+    value: 2000,
+    stats_bonus: %{endurance: 8, intelligence: 3},
+    requirements: %{level: 10}
+  },
+
+  # Consumables
+  %{
+    item_id: "meat",
+    name: "Delicious Meat",
+    description: "Luffy's favorite! Restores health and energy.",
+    type: "consumable",
+    rarity: "common",
+    value: 50,
+    consumable_effect: %{heal: 100, energy: 50},
+    max_stack: 10
+  },
+  %{
+    item_id: "sake",
+    name: "Premium Sake",
+    description: "High-quality sake that temporarily boosts strength.",
+    type: "consumable",
+    rarity: "uncommon",
+    value: 200,
+    consumable_effect: %{strength_boost: 5, duration: 300},
+    max_stack: 5
+  },
+
+  # Treasures
+  %{
+    item_id: "gold_coin",
+    name: "Ancient Gold Coin",
+    description: "A rare gold coin from a lost civilization.",
+    type: "treasure",
+    rarity: "rare",
+    value: 1000,
+    max_stack: 100
+  },
+  %{
+    item_id: "poneglyph_fragment",
+    name: "Poneglyph Fragment",
+    description: "A small piece of an ancient Poneglyph. Extremely valuable to historians.",
+    type: "treasure",
+    rarity: "legendary",
+    value: 50000,
+    sellable: false
+  },
+
+  # Devil Fruits
+  %{
+    item_id: "gomu_gomu_fruit",
+    name: "Gomu Gomu no Mi",
+    description: "A Paramecia-type Devil Fruit that gives the user rubber properties.",
+    type: "devil_fruit",
+    rarity: "mythical",
+    value: 100000,
+    stats_bonus: %{endurance: 10, speed: 5},
+    requirements: %{level: 15},
+    tradeable: false,
+    max_stack: 1
+  },
+  %{
+    item_id: "mera_mera_fruit",
+    name: "Mera Mera no Mi",
+    description: "A Logia-type Devil Fruit that allows the user to control fire.",
+    type: "devil_fruit",
+    rarity: "mythical",
+    value: 150000,
+    stats_bonus: %{strength: 12, intelligence: 8},
+    requirements: %{level: 20},
+    tradeable: false,
+    max_stack: 1
+  }
+]
+
+Enum.each(items, fn item ->
+  %Item{}
+  |> Item.changeset(item)
+  |> Repo.insert!()
+end)
+
+IO.puts("✅ Successfully seeded #{length(items)} items!")
 
 IO.puts("\n🏴‍☠️ Database seeded with One Piece data!")

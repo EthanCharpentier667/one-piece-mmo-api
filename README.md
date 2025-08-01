@@ -17,6 +17,7 @@ Un MMO (Massively Multiplayer Online) basé sur l'univers de One Piece, dévelop
 - **🆕 Système de leaderboard** (top joueurs/équipages)
 - **🆕 Statistiques détaillées** (batailles, trésors, îles visitées)
 - **🆕 API REST complète** pour toutes les données
+- **🆕 Système d'économie** avec berries, shop, inventaire et équipement
 
 ### 🔧 Architecture
 
@@ -37,8 +38,11 @@ OnePieceMmo.Application
 Le système utilise PostgreSQL avec Ecto pour la persistance :
 
 #### Tables principales
-- **users** : Données des joueurs (stats, position, équipage, devil fruits)
+- **users** : Données des joueurs (stats, position, équipage, devil fruits, berries)
 - **crews** : Données des équipages (membres, bounty, territoire, batailles)
+- **items** : Objets du jeu (armes, armures, consommables, devil fruits, trésors)
+- **user_items** : Inventaire des joueurs (quantité, équipement, durabilité)
+- **transactions** : Historique économique (achats, ventes, transferts)
 
 #### Fonctionnalités de persistance
 - **Sauvegarde automatique** toutes les 30s (joueurs) / 60s (équipages)
@@ -107,6 +111,7 @@ curl http://localhost:4000/api/crews
 curl http://localhost:4000/api/leaderboard
 # Top 20 joueurs par bounty + Top 10 équipages par bounty total
 ```
+
 curl http://localhost:4000/api/world
 ```
 
@@ -604,8 +609,13 @@ Accédez à http://localhost:4000/dev/dashboard pour le monitoring en temps rée
 ### Interface de test
 L'interface de test à http://localhost:4000/test.html permet de :
 - Se connecter avec différents joueurs
-- Tester les mouvements
-- Créer/rejoindre des équipages  
+- Tester les mouvements et équipages en temps réel
+- **🆕 Tester toutes les fonctionnalités économiques** :
+  - Voir ses berries et son inventaire
+  - Acheter/vendre des objets dans le shop
+  - Transférer des berries entre joueurs
+  - Équiper/déséquiper des armes et armures
+  - Consulter l'historique des transactions
 - Voir les événements en temps réel
 
 ## 📡 Communication temps réel

@@ -89,6 +89,38 @@
             <button onclick="getCrewInfo()" class="actionBtn">⚓ Get Crew Info</button>
             <button onclick="getServerStatus()" class="actionBtn">🌐 Server Status</button>
         </div>
+
+        <div>
+            <h3>💰 Economy System:</h3>
+            <button onclick="getPlayerBerries()" class="actionBtn">💰 Get Player Berries</button>
+            <button onclick="getShopItems()" class="actionBtn">🛒 View Shop</button>
+            <button onclick="getPlayerInventory()" class="actionBtn">🎒 View Inventory</button>
+            <button onclick="getPlayerTransactions()" class="actionBtn">📜 Transaction History</button>
+            <div style="margin: 10px 0;">
+                <label>💸 Transfer Berries:</label><br>
+                <input type="text" id="transferTo" placeholder="To Player ID" value="zoro_002" style="width: 120px;">
+                <input type="number" id="transferAmount" placeholder="Amount" value="100" style="width: 80px;">
+                <button onclick="transferBerries()" class="actionBtn">Transfer</button>
+            </div>
+            <div style="margin: 10px 0;">
+                <label>🛍️ Buy Item:</label><br>
+                <input type="text" id="buyItemId" placeholder="Item ID" value="rusty_sword" style="width: 120px;">
+                <input type="number" id="buyQuantity" placeholder="Qty" value="1" style="width: 60px;">
+                <button onclick="buyItem()" class="actionBtn">Buy</button>
+            </div>
+            <div style="margin: 10px 0;">
+                <label>💰 Sell Item:</label><br>
+                <input type="text" id="sellItemId" placeholder="Item ID" value="rusty_sword" style="width: 120px;">
+                <input type="number" id="sellQuantity" placeholder="Qty" value="1" style="width: 60px;">
+                <button onclick="sellItem()" class="actionBtn">Sell</button>
+            </div>
+            <div style="margin: 10px 0;">
+                <label>⚔️ Equipment:</label><br>
+                <input type="text" id="equipItemId" placeholder="Item ID" value="rusty_sword" style="width: 120px;">
+                <button onclick="equipItem()" class="actionBtn">Equip</button>
+                <button onclick="unequipItem()" class="actionBtn">Unequip</button>
+            </div>
+        </div>
         
         <div>
             <h3>🏴‍☠️ Crew Management:</h3>
@@ -442,9 +474,223 @@
         log('📋 INSTRUCTIONS:');
         log('   1. 🎮 Real-time: Connect first, then use Move/Crew actions');
         log('   2. 📊 Database API: Test without connecting (direct HTTP calls)');
-        log('   3. 🔍 Quick Tests: Use pre-filled test data or enter your own');
-        log('   4. 🏆 Try "Get Leaderboard" to see all pirates and crews!');
+        log('   3. � Economy: Test berry transfers, shop, inventory, and equipment');
+        log('   4. �🔍 Quick Tests: Use pre-filled test data or enter your own');
+        log('   5. 🏆 Try "Get Leaderboard" to see all pirates and crews!');
         log('🚀 Ready to sail the Grand Line!');
+
+        // Economy Functions
+        async function getPlayerBerries() {
+            const playerId = document.getElementById('playerId').value;
+            try {
+                const response = await fetch(`/api/player/${playerId}/berries`);
+                const data = await response.json();
+                log(`💰 ${playerId} has ${data.berries.toLocaleString()} berries`);
+            } catch (error) {
+                log(`❌ Failed to get berries: ${error.message}`);
+            }
+        }
+
+        async function getShopItems() {
+            try {
+                const response = await fetch('/api/shop');
+                const data = await response.json();
+                log(`🛒 SHOP ITEMS (${data.items.length} available):`);
+                data.items.forEach(item => {
+                    const rarity = item.rarity.toUpperCase();
+                    const price = item.value.toLocaleString();
+                    log(`   🎯 ${item.name} (${item.item_id})`);
+                    log(`      💎 ${rarity} ${item.type} - ${price} berries`);
+                    log(`      📝 ${item.description}`);
+                    if (item.stats_bonus) {
+                        const stats = Object.entries(item.stats_bonus).map(([k,v]) => `${k}+${v}`).join(', ');
+                        log(`      ⚡ Stats: ${stats}`);
+                    }
+                    log('');
+                });
+            } catch (error) {
+                log(`❌ Failed to get shop items: ${error.message}`);
+            }
+        }
+
+        async function getPlayerInventory() {
+            const playerId = document.getElementById('playerId').value;
+            try {
+                const response = await fetch(`/api/player/${playerId}/inventory`);
+                const data = await response.json();
+                log(`🎒 INVENTORY for ${playerId}:`);
+                if (data.inventory.length === 0) {
+                    log('   📦 Inventory is empty');
+                } else {
+                    data.inventory.forEach(userItem => {
+                        const equipped = userItem.equipped ? '⚔️ EQUIPPED' : '📦 In bag';
+                        log(`   ${equipped} ${userItem.name} x${userItem.quantity}`);
+                        log(`      💎 ${userItem.rarity} ${userItem.type}`);
+                        if (userItem.durability && userItem.durability < 100) {
+                            log(`      🔧 Durability: ${userItem.durability}%`);
+                        }
+                    });
+                }
+            } catch (error) {
+                log(`❌ Failed to get inventory: ${error.message}`);
+            }
+        }
+
+        async function transferBerries() {
+            const fromPlayer = document.getElementById('playerId').value;
+            const toPlayer = document.getElementById('transferTo').value;
+            const amount = parseInt(document.getElementById('transferAmount').value);
+            
+            try {
+                const response = await fetch('/api/berries/transfer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        from_player_id: fromPlayer,
+                        to_player_id: toPlayer,
+                        amount: amount
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`💸 Transferred ${amount.toLocaleString()} berries from ${fromPlayer} to ${toPlayer}`);
+                    log(`   📋 Transaction ID: ${data.transaction.id}`);
+                } else {
+                    log(`❌ Transfer failed: ${data.error}`);
+                }
+            } catch (error) {
+                log(`❌ Transfer error: ${error.message}`);
+            }
+        }
+
+        async function buyItem() {
+            const playerId = document.getElementById('playerId').value;
+            const itemId = document.getElementById('buyItemId').value;
+            const quantity = parseInt(document.getElementById('buyQuantity').value);
+            
+            try {
+                const response = await fetch('/api/shop/buy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_id: playerId,
+                        item_id: itemId,
+                        quantity: quantity
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`🛍️ Successfully bought ${quantity}x ${itemId} for ${data.transaction.amount.toLocaleString()} berries`);
+                    log(`   📋 Transaction ID: ${data.transaction.id}`);
+                } else {
+                    log(`❌ Purchase failed: ${data.error}`);
+                }
+            } catch (error) {
+                log(`❌ Purchase error: ${error.message}`);
+            }
+        }
+
+        async function sellItem() {
+            const playerId = document.getElementById('playerId').value;
+            const itemId = document.getElementById('sellItemId').value;
+            const quantity = parseInt(document.getElementById('sellQuantity').value);
+            
+            try {
+                const response = await fetch('/api/shop/sell', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_id: playerId,
+                        item_id: itemId,
+                        quantity: quantity
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`💰 Successfully sold ${quantity}x ${itemId} for ${data.transaction.amount.toLocaleString()} berries`);
+                    log(`   📋 Transaction ID: ${data.transaction.id}`);
+                } else {
+                    log(`❌ Sale failed: ${data.error}`);
+                }
+            } catch (error) {
+                log(`❌ Sale error: ${error.message}`);
+            }
+        }
+
+        async function equipItem() {
+            const playerId = document.getElementById('playerId').value;
+            const itemId = document.getElementById('equipItemId').value;
+            
+            try {
+                const response = await fetch('/api/inventory/equip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_id: playerId,
+                        item_id: itemId
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`⚔️ Successfully equipped ${itemId}`);
+                } else {
+                    log(`❌ Equip failed: ${data.error}`);
+                }
+            } catch (error) {
+                log(`❌ Equip error: ${error.message}`);
+            }
+        }
+
+        async function unequipItem() {
+            const playerId = document.getElementById('playerId').value;
+            const itemId = document.getElementById('equipItemId').value;
+            
+            try {
+                const response = await fetch('/api/inventory/unequip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        player_id: playerId,
+                        item_id: itemId
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    log(`📦 Successfully unequipped ${itemId}`);
+                } else {
+                    log(`❌ Unequip failed: ${data.error}`);
+                }
+            } catch (error) {
+                log(`❌ Unequip error: ${error.message}`);
+            }
+        }
+
+        async function getPlayerTransactions() {
+            const playerId = document.getElementById('playerId').value;
+            try {
+                const response = await fetch(`/api/player/${playerId}/transactions`);
+                const data = await response.json();
+                log(`📜 TRANSACTION HISTORY for ${playerId}:`);
+                if (data.transactions.length === 0) {
+                    log('   📝 No transactions found');
+                } else {
+                    data.transactions.slice(0, 10).forEach(tx => {
+                        const date = new Date(tx.inserted_at).toLocaleString();
+                        log(`   ${tx.transaction_type.toUpperCase()} - ${tx.amount.toLocaleString()} berries`);
+                        log(`      📅 ${date} | ID: ${tx.transaction_id}`);
+                        if (tx.description) log(`      📝 ${tx.description}`);
+                        log('');
+                    });
+                }
+            } catch (error) {
+                log(`❌ Failed to get transactions: ${error.message}`);
+            }
+        }
     </script>
 </body>
 </html>

@@ -28,6 +28,9 @@ defmodule OnePieceMmo.Accounts.User do
     field :devil_fruit_type, :string
     field :devil_fruit_name, :string
 
+    # Economy
+    field :berries, :integer, default: 1000
+
     # Timestamps
     field :last_login, :utc_datetime
     field :last_position_update, :utc_datetime
@@ -44,6 +47,7 @@ defmodule OnePieceMmo.Accounts.User do
       :crew_id, :is_crew_captain,
       :strength, :speed, :endurance, :intelligence,
       :devil_fruit_type, :devil_fruit_name,
+      :berries,
       :last_login, :last_position_update
     ])
     |> validate_required([:player_id, :name])
@@ -51,6 +55,7 @@ defmodule OnePieceMmo.Accounts.User do
     |> validate_number(:level, greater_than: 0)
     |> validate_number(:experience, greater_than_or_equal_to: 0)
     |> validate_number(:bounty, greater_than_or_equal_to: 0)
+    |> validate_number(:berries, greater_than_or_equal_to: 0)
     |> validate_number(:strength, greater_than: 0)
     |> validate_number(:speed, greater_than: 0)
     |> validate_number(:endurance, greater_than: 0)

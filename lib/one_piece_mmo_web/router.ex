@@ -19,6 +19,17 @@ defmodule OnePieceMmoWeb.Router do
     get "/crew/:crew_id", GameController, :crew_info
     get "/crews", GameController, :all_crews
     get "/leaderboard", GameController, :leaderboard
+
+    # Economy endpoints
+    get "/player/:player_id/berries", GameController, :player_berries
+    post "/berries/transfer", GameController, :transfer_berries
+    get "/shop", GameController, :shop_items
+    post "/shop/buy", GameController, :buy_item
+    post "/shop/sell", GameController, :sell_item
+    get "/player/:player_id/inventory", GameController, :player_inventory
+    post "/inventory/equip", GameController, :equip_item
+    post "/inventory/unequip", GameController, :unequip_item
+    get "/player/:player_id/transactions", GameController, :player_transactions
   end  # Enable LiveDashboard in development
   if Application.compile_env(:one_piece_mmo, :dev_routes) do
     # If you want to use the LiveDashboard in production, you should put
